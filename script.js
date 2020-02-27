@@ -115,23 +115,29 @@ mainloop = () => {
   fillScreen("black")
   renderQueue = []
   ToDrawQueue(1, matMatMul(matRotationx(0), matRotationy(0)), [
-    [1,0,0,0],
-    [0,1,0,0],
-    [0,0,1,0],
-    [0,-20,0,1]
+    [1, 0, 0, 0],
+    [0, 1, 0, 0],
+    [0, 0, 1, 0],
+    [10, -20, 0, 1]
   ])
   // x translation has to be negative
   ToDrawQueue(0, matMatMul(matRotationx(-xRotation), matRotationy(yRotation)), [
-    [1,0,0,0],
-    [0,1,0,0],
-    [0,0,1,0],
-    [0,0,20,1]
+    [1, 0, 0, 0],
+    [0, 1, 0, 0],
+    [0, 0, 1, 0],
+    [0, 0, 20, 1]
   ])
-  ToDrawQueue(0, matMatMul(matRotationz(tick), matRotationy(Math.PI / 2)), [
-    [1,0,0,0],
-    [0,1,0,0],
-    [0,0,1,0],
-    [10,-15,-30,1]
+  ToDrawQueue(0, matMatMul(matMatMul(matRotationz(tick), matRotationy(Math.PI / 2)), matRotationy(-Math.PI / 6)), [
+    [1, 0, 0, 0],
+    [0, 1, 0, 0],
+    [0, 0, 1, 0],
+    [-10, -15, -35, 1]
+  ])
+  ToDrawQueue(0, matMatMul(matMatMul(matRotationz(Math.PI / 2 - tick), matRotationy(Math.PI / 2)), matMatMul(matRotationz(Math.PI / 6), matRotationy(-Math.PI / 4))), [
+    [1, 0, 0, 0],
+    [0, 1, 0, 0],
+    [0, 0, 1, 0],
+    [10, -10, -50, 1]
   ])
   renderQueue = mergeSort(renderQueue)
   drawQueue()
@@ -143,7 +149,7 @@ mainloop = () => {
 // fps function
 // fps function
 
-function getFPS(){
+function getFPS() {
   now = performance.now()
   while (times.length > 0 && times[0] <= now - 1000) {
     times.shift()
