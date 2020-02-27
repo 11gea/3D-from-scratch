@@ -114,6 +114,13 @@ mainloop = () => {
   keyToMovement()
   fillScreen("black")
   renderQueue = []
+  ToDrawQueue(1, matMatMul(matRotationx(0), matRotationy(0)), [
+    [1,0,0,0],
+    [0,1,0,0],
+    [0,0,1,0],
+    [0,-20,0,1]
+  ])
+  // x translation has to be negative
   ToDrawQueue(0, matMatMul(matRotationx(-xRotation), matRotationy(yRotation)), [
     [1,0,0,0],
     [0,1,0,0],
@@ -124,7 +131,7 @@ mainloop = () => {
     [1,0,0,0],
     [0,1,0,0],
     [0,0,1,0],
-    [10,0,20,1]
+    [10,-15,-30,1]
   ])
   renderQueue = mergeSort(renderQueue)
   drawQueue()
@@ -520,7 +527,7 @@ function loadMesh(filename) {
     async: false,
     dataType: 'text'
   }).done(function (data) {
-    meshList.push(loadMeshData(data))
+    meshList = loadMeshData(data)
   })
 }
 
@@ -530,12 +537,12 @@ $(document).ready(function () {
 });
 
 function loadMeshData(string) {
-  var lines = string.split("\n");
-  var positions = [];
-  var triangles = [];
-
-  for (var i = 0; i < lines.length; i++) {
-    var parts = lines[i].trimRight().split(' ');
+  let meshList = []
+  let lines = string.split("\n");
+  let positions = [];
+  let triangles = [];
+  for (let i = 0; i < lines.length; i++) {
+    let parts = lines[i].trimRight().split(' ');
     if (parts.length > 0) {
       switch (parts[0]) {
         case 'v':
@@ -566,8 +573,13 @@ function loadMeshData(string) {
           }
           break;
         }
+        case 'push': {
+          meshList.push(triangles)
+          positions = [];
+          triangles = []
+        }
       }
     }
   }
-  return triangles
+  return meshList
 }
