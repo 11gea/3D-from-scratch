@@ -9,21 +9,28 @@ canvas.requestPointerLock();
 canvas.onclick = function () { canvas.requestPointerLock() }
 
 camera = [0, 0, 0]
+meshList = []
+fNear = 0.1
+fFar = 1000
+fFov = 90
+fFovRad = 1 / Math.tan(fFov / 360 * Math.PI)
+xRotation = 0
+yRotation = 0
 keyId = []
 keyPressed = []
-meshList = []
 click = false
 mode = true
+screenWidth = -1
+screenHeight = -1
 mousex = 0
 mousey = 0
-xRotaion = 0
-yRotaion = 0
+windowInfo()
 
 // 3D function
 // 3D function
 // 3D function
 
-function 3DToDrawQueue(meshObject, rotationMatrix, translationVector) {
+function ToDrawQueue(meshObject, rotationMatrix, translationVector) {
   object = copyArray(meshList[meshObject])
   worldMatrix = rotationMatrix
   worldMatrix[3][0] = translationVector[0]
@@ -40,11 +47,11 @@ function 3DToDrawQueue(meshObject, rotationMatrix, translationVector) {
     currentTriangle[2] = vecMatMul(currentTriangle[2], worldMatrix)
     line1 = vecVecSub(currentTriangle[1], currentTriangle[0])
     line2 = vecVecSub(currentTriangle[2], currentTriangle[0])
-    normal = vecNorm(vecCross(line1, line2))
-    cameraRay = vecSub(currentTriangle[0], camera)
-    if (vecDot(normal, cameraRay) < 0) {
+    normal = vecNorm(vecVecCross(line1, line2))
+    cameraRay = vecVecSub(currentTriangle[0], camera)
+    if (vecVecDot(normal, cameraRay) < 0) {
       light = vecNorm([-1, -1, -1])
-      scaledLight = Math.floor((vecDot(light, normal) + 1) / 2 * 235) + 20
+      scaledLight = Math.floor((vecVecDot(light, normal) + 1) / 2 * 235) + 20
       color = scaledLight.toString(16).toUpperCase()
       if (color.length == 1) {
         color = "0" + color
@@ -56,6 +63,19 @@ function 3DToDrawQueue(meshObject, rotationMatrix, translationVector) {
       currentTriangle[0] = vecMatMul(currentTriangle[0], rotationxMatrix)
       currentTriangle[1] = vecMatMul(currentTriangle[1], rotationxMatrix)
       currentTriangle[2] = vecMatMul(currentTriangle[2], rotationxMatrix)
+      currentTriangle[0] = vecMatMul(currentTriangle[0], projectionMatrix)
+      currentTriangle[1] = vecMatMul(currentTriangle[1], projectionMatrix)
+      currentTriangle[2] = vecMatMul(currentTriangle[2], projectionMatrix)
+      currentTriangle[0] = vecIntDiv(currentTriangle[0], currentTriangle[0][3])
+      currentTriangle[1] = vecIntDiv(currentTriangle[1], currentTriangle[1][3])
+      currentTriangle[2] = vecIntDiv(currentTriangle[2], currentTriangle[2][3])
+      currentTriangle[0][0] *= halfWidth
+      currentTriangle[0][1] *= halfHeight
+      currentTriangle[1][0] *= halfWidth
+      currentTriangle[1][1] *= halfHeight
+      currentTriangle[2][0] *= halfWidth
+      currentTriangle[2][1] *= halfHeight
+      renderQueue.push([currentTriangle, color, currentTriangle[0][2] + currentTriangle[1][2] + currentTriangle[2][2]])
     }
   }
 }
@@ -65,18 +85,29 @@ function 3DToDrawQueue(meshObject, rotationMatrix, translationVector) {
 // draw function
 
 function drawQueue() {
-  //
+  for (let i = 0; i < renderQueue.length; i++) {
+    object = copyArray(renderQueue[i])
+    currentTriangle = object[0]
+    color = object[1]
+    color = "#" + color + color + color
+    shape(color, false, [
+      -currentTriangle[0][0], currentTriangle[0][1],
+      -currentTriangle[1][0], currentTriangle[1][1],
+      -currentTriangle[2][0], currentTriangle[2][1]
+    ])
+  }
 }
 
 // mainloop
 // mainloop
 // mainloop
-
 mainloop = () => {
   windowInfo()
   keyToMovement()
   fillScreen("black")
-  3DToDrawQueue(0, matMatMul(matRotationy(0)), [0, 0, 0])
+  renderQueue = []
+  ToDrawQueue(0, matMatMul(matRotationy(Math.PI / 2), matRotationx(Math.PI / 4)), [10, -1, -20])
+  ToDrawQueue(0, matMatMul(matRotationy(-Math.PI / 2), matRotationx(-Math.PI / 4)), [-10, 1, -20])
   drawQueue()
   request = requestAnimationFrame(mainloop)
 }
@@ -106,7 +137,7 @@ function vecVecDot(vec1, vec2) {
 }
 
 function vecDis(vec) {
-  return Math.sqrt(vecDot(vec, vec))
+  return Math.sqrt(vecVecDot(vec, vec))
 }
 
 function vecNorm(vec) {
@@ -124,9 +155,9 @@ function vecVecCross(vec1, vec2) {
 
 function vecMatMul(vec, mat) {
   if (vec[3] == null) {
-    let v3 = 1
+    v3 = 1
   } else {
-    let v3 = vec[3]
+    v3 = vec[3]
   }
   let x = vec[0] * mat[0][0] + vec[1] * mat[1][0] + vec[2] * mat[2][0] + v3 * mat[3][0]
   let y = vec[0] * mat[0][1] + vec[1] * mat[1][1] + vec[2] * mat[2][1] + v3 * mat[3][1]
@@ -151,7 +182,7 @@ function matMatMul(mat1, mat2) {
 }
 
 function pointAt(position, target, up) {
-  let forward = vecNorm(vecSub(target, position))
+  let forward = vecNorm(vecVecSub(target, position))
   let newUp = vecNorm(vecVecSub(up, vecIntMul(forward, vecVecDot(up, forward))))
   let right = vecVecCross(newUp, forward)
   return [
@@ -259,8 +290,8 @@ function keyToMovement() {
 function mouseMove(e) {
   mousex += e.movementX
   mousey -= e.movementY
-  xRotaion = mousey / 100
-  yRotaion = mousex / 100
+  xRotation = mousey / 100
+  yRotation = mousex / 100
 }
 
 function keyDown(e) {
@@ -290,12 +321,20 @@ function keyUp(e) {
 }
 
 function windowInfo() {
-  screenWidth = window.innerWidth
-  screenHeight = window.innerHeight
-  halfWidth = screenWidth / 2
-  halfHeight = screenHeight / 2
-  document.getElementById('canvas').width = screenWidth
-  document.getElementById('canvas').height = screenHeight
+  if ((window.innerWidth != screenWidth) || (window.innerHeight != screenHeight)) {
+    screenWidth = window.innerWidth
+    screenHeight = window.innerHeight
+    projectionMatrix = [
+      [screenWidth / screenHeight * fFovRad, 0, 0, 0],
+      [0, fFovRad, 0, 0],
+      [0, 0, fFar / (fFar - fNear), 1],
+      [0, 0, (-fFar * fNear) / (fFar - fNear), 0]
+    ]
+    halfWidth = screenWidth / 2
+    halfHeight = screenHeight / 2
+    document.getElementById('canvas').width = screenWidth
+    document.getElementById('canvas').height = screenHeight
+  }
 }
 
 // drawing functions
