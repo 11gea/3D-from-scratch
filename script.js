@@ -9,6 +9,7 @@ canvas.requestPointerLock();
 canvas.onclick = function () { canvas.requestPointerLock() }
 
 camera = [0, 0, 0]
+lookDirection = [0, 0, 0]
 meshList = []
 fNear = 0.1
 fFar = 1000
@@ -16,6 +17,7 @@ fFov = 90
 fFovRad = 1 / Math.tan(fFov / 360 * Math.PI)
 xRotation = 0
 yRotation = 0
+times = []
 keyId = []
 keyPressed = []
 click = false
@@ -33,7 +35,7 @@ windowInfo()
 function ToDrawQueue(meshObject, rotationMatrix, translationVector) {
   object = copyArray(meshList[meshObject])
   worldMatrix = rotationMatrix
-  worldMatrix[3][0] = translationVector[0]
+  worldMatrix[3][0] = -translationVector[0]
   worldMatrix[3][1] = translationVector[1]
   worldMatrix[3][2] = translationVector[2]
   lookDirection = vecMatMul([0, 0, 1], matRotationy(yRotation))
@@ -63,19 +65,25 @@ function ToDrawQueue(meshObject, rotationMatrix, translationVector) {
       currentTriangle[0] = vecMatMul(currentTriangle[0], rotationxMatrix)
       currentTriangle[1] = vecMatMul(currentTriangle[1], rotationxMatrix)
       currentTriangle[2] = vecMatMul(currentTriangle[2], rotationxMatrix)
-      currentTriangle[0] = vecMatMul(currentTriangle[0], projectionMatrix)
-      currentTriangle[1] = vecMatMul(currentTriangle[1], projectionMatrix)
-      currentTriangle[2] = vecMatMul(currentTriangle[2], projectionMatrix)
-      currentTriangle[0] = vecIntDiv(currentTriangle[0], currentTriangle[0][3])
-      currentTriangle[1] = vecIntDiv(currentTriangle[1], currentTriangle[1][3])
-      currentTriangle[2] = vecIntDiv(currentTriangle[2], currentTriangle[2][3])
-      currentTriangle[0][0] *= halfWidth
-      currentTriangle[0][1] *= halfHeight
-      currentTriangle[1][0] *= halfWidth
-      currentTriangle[1][1] *= halfHeight
-      currentTriangle[2][0] *= halfWidth
-      currentTriangle[2][1] *= halfHeight
-      renderQueue.push([currentTriangle, color, currentTriangle[0][3] + currentTriangle[1][3] + currentTriangle[2][3]])
+      nClippedTriangles = 0
+      clipped = [[], []]
+      nClippedTriangles = triClip([0, 0, fNear], [0, 0, 1], currentTriangle);
+      for (n = 0; n < nClippedTriangles; n++) {
+        currentTriangle = copyArray(clipped[n])
+        currentTriangle[0] = vecMatMul(currentTriangle[0], projectionMatrix)
+        currentTriangle[1] = vecMatMul(currentTriangle[1], projectionMatrix)
+        currentTriangle[2] = vecMatMul(currentTriangle[2], projectionMatrix)
+        currentTriangle[0] = vecIntDiv(currentTriangle[0], currentTriangle[0][3])
+        currentTriangle[1] = vecIntDiv(currentTriangle[1], currentTriangle[1][3])
+        currentTriangle[2] = vecIntDiv(currentTriangle[2], currentTriangle[2][3])
+        currentTriangle[0][0] *= halfWidth
+        currentTriangle[0][1] *= halfHeight
+        currentTriangle[1][0] *= halfWidth
+        currentTriangle[1][1] *= halfHeight
+        currentTriangle[2][0] *= halfWidth
+        currentTriangle[2][1] *= halfHeight
+        renderQueue.push([currentTriangle, color, currentTriangle[0][2] + currentTriangle[1][2] + currentTriangle[2][2]])
+      }
     }
   }
 }
@@ -101,6 +109,7 @@ function drawQueue() {
 // mainloop
 // mainloop
 // mainloop
+
 tick = 0
 mainloop = () => {
   tick += 0.1
@@ -108,11 +117,92 @@ mainloop = () => {
   keyToMovement()
   fillScreen("black")
   renderQueue = []
-  ToDrawQueue(0, matMatMul(matRotationx(xRotation), matRotationy(yRotation)), [10, -1, -20])
-  ToDrawQueue(0, matMatMul(matRotationz(-tick - Math.PI / 4), matRotationy(0 - Math.PI / 2)), [-10, 1, -20])
+  ToDrawQueue(0, matMatMul(matRotationx(-xRotation), matRotationy(yRotation)), [0, 0, 20])
+  ToDrawQueue(0, matMatMul(matRotationz(tick), matRotationy(Math.PI / 2)), [10, 0, 20])
   renderQueue = mergeSort(renderQueue)
   drawQueue()
+  text(-halfWidth + 5, halfHeight - 15, getFPS() + " FPS", 15, "white")
   request = requestAnimationFrame(mainloop)
+}
+
+// fps function
+// fps function
+// fps function
+
+function getFPS(){
+  now = performance.now()
+  while (times.length > 0 && times[0] <= now - 1000) {
+    times.shift()
+  }
+  times.push(now)
+  return times.length
+}
+
+// clipping functions
+// clipping functions
+// clipping functions
+
+function vecIntPlane(planePoint, planeNormal, lineStart, lineEnd) {
+  let planeNorm = vecNorm(planeNormal)
+  let planeDot = -vecVecDot(planeNorm, planePoint);
+  let ad = vecVecDot(lineStart, planeNorm);
+  let bd = vecVecDot(lineEnd, planeNorm);
+  let t = (-planeDot - ad) / (bd - ad);
+  let lineStartToEnd = vecVecSub(lineEnd, lineStart);
+  let lineToIntersect = vecIntMul(lineStartToEnd, t);
+  return vecVecAdd(lineStart, lineToIntersect)
+}
+
+function dist(planePoint, planeNormal, point) {
+  return (planeNormal[0] * point[0] + planeNormal[1] * point[1] + planeNormal[2] * point[2] - vecVecDot(planeNormal, planePoint));
+};
+
+function triClip(planePoint, planeNormal, in_tri) {
+  planeNormal = vecNorm(planeNormal);
+  inside_points = [0, 0, 0]
+  nInsidePointCount = 0
+  outside_points = [0, 0, 0]
+  nOutsidePointCount = 0
+  d0 = dist(planePoint, planeNormal, in_tri[0]);
+  d1 = dist(planePoint, planeNormal, in_tri[1]);
+  d2 = dist(planePoint, planeNormal, in_tri[2]);
+  if (d0 >= 0) {
+    inside_points[nInsidePointCount++] = in_tri[0];
+  } else {
+    outside_points[nOutsidePointCount++] = in_tri[0];
+  }
+  if (d1 >= 0) {
+    inside_points[nInsidePointCount++] = in_tri[1];
+  } else {
+    outside_points[nOutsidePointCount++] = in_tri[1];
+  }
+  if (d2 >= 0) {
+    inside_points[nInsidePointCount++] = in_tri[2];
+  } else {
+    outside_points[nOutsidePointCount++] = in_tri[2];
+  }
+  if (nInsidePointCount == 0) {
+    return 0
+  }
+  if (nInsidePointCount == 3) {
+    clipped[0] = in_tri;
+    return 1;
+  }
+  if (nInsidePointCount == 1 && nOutsidePointCount == 2) {
+    clipped[0][0] = inside_points[0];
+    clipped[0][1] = vecIntPlane(planePoint, planeNormal, inside_points[0], outside_points[0]);
+    clipped[0][2] = vecIntPlane(planePoint, planeNormal, inside_points[0], outside_points[1]);
+    return 1;
+  }
+  if (nInsidePointCount == 2 && nOutsidePointCount == 1) {
+    clipped[0][0] = inside_points[0];
+    clipped[0][1] = inside_points[1];
+    clipped[0][2] = vecIntPlane(planePoint, planeNormal, inside_points[0], outside_points[0]);
+    clipped[1][0] = inside_points[1];
+    clipped[1][1] = clipped[0][2];
+    clipped[1][2] = vecIntPlane(planePoint, planeNormal, inside_points[1], outside_points[0]);
+    return 2;
+  }
 }
 
 // sort function
@@ -141,15 +231,6 @@ function merge(left, right) {
     }
   }
   return result.concat(left.slice(i)).concat(right.slice(j))
-}
-
-function rotMatx(t) {
-  rotxMat = [
-    [1, 0, 0, 0],
-    [0, Math.cos(t), Math.sin(t), 0],
-    [0, -Math.sin(t), Math.cos(t), 0],
-    [0, 0, 0, 1]
-  ]
 }
 
 // operation functions
@@ -291,38 +372,50 @@ function copyArray(array) {
 // user functions
 
 function keyToMovement() {
+  let sen = 0.5
+  let forward = vecIntMul(lookDirection, sen)
   k = keyId.indexOf("KeyW")
   c = keyId.indexOf("ArrowUp")
   if ((k > -1) || (c > -1)) {
     if ((keyPressed[k]) || (keyPressed[c])) {
+      camera[0] += forward[0]
+      camera[2] += forward[2]
     }
   }
-  k = keyId.indexOf("keyPressed")
+  k = keyId.indexOf("KeyS")
   c = keyId.indexOf("ArrowDown")
   if ((k > -1) || (c > -1)) {
     if ((keyPressed[k]) || (keyPressed[c])) {
+      camera[0] -= forward[0]
+      camera[2] -= forward[2]
     }
   }
   k = keyId.indexOf("KeyA")
   c = keyId.indexOf("ArrowLeft")
   if ((k > -1) || (c > -1)) {
     if ((keyPressed[k]) || (keyPressed[c])) {
+      camera[0] += forward[2]
+      camera[2] -= forward[0]
     }
   }
   k = keyId.indexOf("KeyD")
   c = keyId.indexOf("ArrowRight")
   if ((k > -1) || (c > -1)) {
     if ((keyPressed[k]) || (keyPressed[c])) {
+      camera[0] -= forward[2]
+      camera[2] += forward[0]
     }
   }
   k = keyId.indexOf("ShiftLeft")
   if (k > -1) {
     if (keyPressed[k]) {
+      camera[1] -= sen
     }
   }
   k = keyId.indexOf("Space")
   if (k > -1) {
     if (keyPressed[k]) {
+      camera[1] += sen
     }
   }
 }
