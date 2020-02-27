@@ -32,12 +32,9 @@ windowInfo()
 // 3D function
 // 3D function
 
-function ToDrawQueue(meshObject, rotationMatrix, translationVector) {
+function ToDrawQueue(meshObject, rotationMatrix, translationMatrix) {
   object = copyArray(meshList[meshObject])
-  worldMatrix = rotationMatrix
-  worldMatrix[3][0] = -translationVector[0]
-  worldMatrix[3][1] = translationVector[1]
-  worldMatrix[3][2] = translationVector[2]
+  worldMatrix = matMatMul(rotationMatrix, translationMatrix)
   lookDirection = vecMatMul([0, 0, 1], matRotationy(yRotation))
   target = vecVecAdd(camera, lookDirection)
   cameraMatrix = pointAt(camera, target, [0, 1, 0])
@@ -117,8 +114,18 @@ mainloop = () => {
   keyToMovement()
   fillScreen("black")
   renderQueue = []
-  ToDrawQueue(0, matMatMul(matRotationx(-xRotation), matRotationy(yRotation)), [0, 0, 20])
-  ToDrawQueue(0, matMatMul(matRotationz(tick), matRotationy(Math.PI / 2)), [10, 0, 20])
+  ToDrawQueue(0, matMatMul(matRotationx(-xRotation), matRotationy(yRotation)), [
+    [1,0,0,0],
+    [0,1,0,0],
+    [0,0,1,0],
+    [0,0,20,1]
+  ])
+  ToDrawQueue(0, matMatMul(matRotationz(tick), matRotationy(Math.PI / 2)), [
+    [1,0,0,0],
+    [0,1,0,0],
+    [0,0,1,0],
+    [10,0,20,1]
+  ])
   renderQueue = mergeSort(renderQueue)
   drawQueue()
   text(-halfWidth + 5, halfHeight - 15, getFPS() + " FPS", 15, "white")
@@ -458,7 +465,7 @@ function windowInfo() {
     screenWidth = window.innerWidth
     screenHeight = window.innerHeight
     projectionMatrix = [
-      [screenWidth / screenHeight * fFovRad, 0, 0, 0],
+      [screenHeight / screenWidth * fFovRad, 0, 0, 0],
       [0, fFovRad, 0, 0],
       [0, 0, fFar / (fFar - fNear), 1],
       [0, 0, (-fFar * fNear) / (fFar - fNear), 0]
