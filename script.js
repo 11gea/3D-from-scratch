@@ -15,6 +15,149 @@ click = false
 mode = true
 mousex = 0
 mousey = 0
+xRotaion = 0
+yRotaion = 0
+
+// opation functions
+// opation functions
+// opation functions
+
+function vecVecAdd(vec1, vec2) {
+  return [vec1[0] + vec2[0], vec1[1] + vec2[1], vec1[2] + vec2[2]]
+}
+
+function vecVecSub(vec1, vec2) {
+  return [vec1[0] - vec2[0], vec1[1] - vec2[1], vec1[2] - vec2[2]]
+}
+
+function vecIntMul(vec, int) {
+  return [vec[0] * int, vec[1] * int, vec[2] * int]
+}
+
+function vecIntDiv(vec, int) {
+  return [vec[0] / int, vec[1] / int, vec[2] / int]
+}
+
+function vecVecDot(vec1, vec2) {
+  return vec1[0] * vec2[0] + vec1[1] * vec2[1] + vec1[2] * vec2[2]
+}
+
+function vecDis(vec) {
+  return Math.sqrt(vecDot(vec, vec))
+}
+
+function vecNorm(vec) {
+  let distance = vecDis(vec)
+  return vecIntDiv(vec, distance)
+}
+
+function vecVecCross(vec1, vec2) {
+  return [
+    vec1[1] * vec2[2] - vec1[2] * vec2[1],
+    vec1[2] * vec2[0] - vec1[0] * vec2[2],
+    vec1[0] * vec2[1] - vec1[1] * vec2[0]
+  ]
+}
+
+function vecMatMul(vec, mat) {
+  if (vec[3] == null) {
+    let v3 = 1
+  } else {
+    let v3 = vec[3]
+  }
+  let x = vec[0] * mat[0][0] + vec[1] * mat[1][0] + vec[2] * mat[2][0] + v3 * mat[3][0]
+  let y = vec[0] * mat[0][1] + vec[1] * mat[1][1] + vec[2] * mat[2][1] + v3 * mat[3][1]
+  let z = vec[0] * mat[0][2] + vec[1] * mat[1][2] + vec[2] * mat[2][2] + v3 * mat[3][2]
+  let w = vec[0] * mat[0][3] + vec[1] * mat[1][3] + vec[2] * mat[2][3] + v3 * mat[3][3]
+  return [x, y, z, w]
+}
+
+function matMatMul(mat1, mat2) {
+  let matrix = [
+    [0, 0, 0, 0],
+    [0, 0, 0, 0],
+    [0, 0, 0, 0],
+    [0, 0, 0, 0]
+  ]
+  for (c = 0; c < 4; c++) {
+    for (r = 0; r < 4; r++) {
+      matrix[r][c] = mat1[r][0] * mat2[0][c] + mat1[r][1] * mat2[1][c] + mat1[r][2] * mat2[2][c] + mat1[r][3] * mat2[3][c];
+    }
+  }
+  return matrix
+}
+
+function PointAt(position, target, up) {
+  let forward = vecNorm(vecSub(target, position))
+  let newUp = vecNorm(vecVecSub(up, vecIntMul(forward, vecVecDot(up, forward))))
+  let right = vecVecCross(newUp, forward)
+  return [
+    [right[0], right[1], right[2], 0],
+    [newUp[0], newUp[1], newUp[2], 0],
+    [forward[0], forward[1], forward[2], 0],
+    [position[0], position[1], position[2], 1],
+  ]
+}
+
+function LookAt(mat) {
+  return [
+    [mat[0][0], mat[1][0], mat[2][0], 0],
+    [mat[0][1], mat[1][1], mat[2][1], 0],
+    [mat[0][2], mat[1][2], mat[2][2], 0],
+    [
+      -(mat[3][0] * mat[0][0] + mat[3][1] * mat[0][1] + mat[3][2] * mat[0][2]),
+      -(mat[3][0] * mat[1][0] + mat[3][1] * mat[1][1] + mat[3][2] * mat[1][2]),
+      -(mat[3][0] * mat[2][0] + mat[3][1] * mat[2][1] + mat[3][2] * mat[2][2]),
+      1
+    ],
+  ]
+}
+
+// rotation functions
+// rotation functions
+// rotation functions
+
+function rotMatx(theta) {
+  return [
+    [1, 0, 0, 0],
+    [0, Math.cos(theta), Math.sin(theta), 0],
+    [0, -Math.sin(theta), Math.cos(theta), 0],
+    [0, 0, 0, 1]
+  ]
+}
+
+function rotMatz(theta) {
+  return [
+    [Math.cos(theta), Math.sin(theta), 0, 0],
+    [-Math.sin(theta), Math.cos(theta), 0, 0],
+    [0, 0, 1, 0],
+    [0, 0, 0, 1]
+  ]
+}
+
+function rotMaty(theta) {
+  return [
+    [Math.cos(theta), 0, Math.sin(theta), 0],
+    [0, 1, 0, 0],
+    [-Math.sin(theta), 0, Math.cos(theta), 0],
+    [0, 0, 0, 1]
+  ]
+}
+
+// 3D function
+// 3D function
+// 3D function
+
+function 3D() {
+  worldMatrix = [
+    [1, 0, 0, 0],
+    [0, 1, 0, 0],
+    [0, 0, 1, 0],
+    [0, 0, 0, 0],
+  ]
+  up = [0, 1, 0]
+  target = [0, 0, 1]
+}
 
 // mainloop
 // mainloop
@@ -24,6 +167,7 @@ mainloop = () => {
   windowInfo()
   keyToMovement()
   fillScreen("black")
+  3D()
   shape("white", true, [mousex, mousey, 10 + mousex, 10 + mousey, 20 + mousex, mousey, 10 + mousex, mousey - 10])
   request = requestAnimationFrame(mainloop)
 }
