@@ -101,13 +101,15 @@ function drawQueue() {
 // mainloop
 // mainloop
 // mainloop
+tick = 0
 mainloop = () => {
+  tick += 0.01
   windowInfo()
   keyToMovement()
   fillScreen("black")
   renderQueue = []
-  ToDrawQueue(0, matMatMul(matRotationy(Math.PI / 2), matRotationx(Math.PI / 4)), [10, -1, -20])
-  ToDrawQueue(0, matMatMul(matRotationy(-Math.PI / 2), matRotationx(-Math.PI / 4)), [-10, 1, -20])
+  ToDrawQueue(0, matMatMul(matRotationy(tick + Math.PI / 2), matRotationx(tick + Math.PI / 4)), [10, -1, -20])
+  ToDrawQueue(0, matMatMul(matRotationy(tick - Math.PI / 2), matRotationx(tick - Math.PI / 4)), [-10, 1, -20])
   drawQueue()
   request = requestAnimationFrame(mainloop)
 }
