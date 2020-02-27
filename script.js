@@ -8,6 +8,7 @@ canvas.addEventListener("mouseup", function () { click = false });
 canvas.requestPointerLock();
 canvas.onclick = function () { canvas.requestPointerLock() }
 
+camera = [0, 0, 0]
 keyId = []
 keyPressed = []
 meshList = []
@@ -18,9 +19,71 @@ mousey = 0
 xRotaion = 0
 yRotaion = 0
 
-// opation functions
-// opation functions
-// opation functions
+// 3D function
+// 3D function
+// 3D function
+
+function 3DToDrawQueue(meshObject, rotationMatrix, translationVector) {
+  object = copyArray(meshList[meshObject])
+  worldMatrix = rotationMatrix
+  worldMatrix[3][0] = translationVector[0]
+  worldMatrix[3][1] = translationVector[1]
+  worldMatrix[3][2] = translationVector[2]
+  lookDirection = vecMatMul([0, 0, 1], matRotationy(yRotation))
+  target = vecVecAdd(camera, lookDirection)
+  cameraMatrix = pointAt(camera, target, [0, 1, 0])
+  viewMatrix = lookAt(cameraMatrix)
+  for (let i = 0; i < object.length; i++) {
+    currentTriangle = copyArray(object[i])
+    currentTriangle[0] = vecMatMul(currentTriangle[0], worldMatrix)
+    currentTriangle[1] = vecMatMul(currentTriangle[1], worldMatrix)
+    currentTriangle[2] = vecMatMul(currentTriangle[2], worldMatrix)
+    line1 = vecVecSub(currentTriangle[1], currentTriangle[0])
+    line2 = vecVecSub(currentTriangle[2], currentTriangle[0])
+    normal = vecNorm(vecCross(line1, line2))
+    cameraRay = vecSub(currentTriangle[0], camera)
+    if (vecDot(normal, cameraRay) < 0) {
+      light = vecNorm([-1, -1, -1])
+      scaledLight = Math.floor((vecDot(light, normal) + 1) / 2 * 235) + 20
+      color = scaledLight.toString(16).toUpperCase()
+      if (color.length == 1) {
+        color = "0" + color
+      }
+      currentTriangle[0] = vecMatMul(currentTriangle[0], viewMatrix)
+      currentTriangle[1] = vecMatMul(currentTriangle[1], viewMatrix)
+      currentTriangle[2] = vecMatMul(currentTriangle[2], viewMatrix)
+      rotationxMatrix = matRotationx(xRotation)
+      currentTriangle[0] = vecMatMul(currentTriangle[0], rotationxMatrix)
+      currentTriangle[1] = vecMatMul(currentTriangle[1], rotationxMatrix)
+      currentTriangle[2] = vecMatMul(currentTriangle[2], rotationxMatrix)
+    }
+  }
+}
+
+// draw function
+// draw function
+// draw function
+
+function drawQueue() {
+  //
+}
+
+// mainloop
+// mainloop
+// mainloop
+
+mainloop = () => {
+  windowInfo()
+  keyToMovement()
+  fillScreen("black")
+  3DToDrawQueue(0, matMatMul(matRotationy(0)), [0, 0, 0])
+  drawQueue()
+  request = requestAnimationFrame(mainloop)
+}
+
+// operation functions
+// operation functions
+// operation functions
 
 function vecVecAdd(vec1, vec2) {
   return [vec1[0] + vec2[0], vec1[1] + vec2[1], vec1[2] + vec2[2]]
@@ -87,7 +150,7 @@ function matMatMul(mat1, mat2) {
   return matrix
 }
 
-function PointAt(position, target, up) {
+function pointAt(position, target, up) {
   let forward = vecNorm(vecSub(target, position))
   let newUp = vecNorm(vecVecSub(up, vecIntMul(forward, vecVecDot(up, forward))))
   let right = vecVecCross(newUp, forward)
@@ -99,7 +162,7 @@ function PointAt(position, target, up) {
   ]
 }
 
-function LookAt(mat) {
+function lookAt(mat) {
   return [
     [mat[0][0], mat[1][0], mat[2][0], 0],
     [mat[0][1], mat[1][1], mat[2][1], 0],
@@ -117,7 +180,7 @@ function LookAt(mat) {
 // rotation functions
 // rotation functions
 
-function rotMatx(theta) {
+function matRotationx(theta) {
   return [
     [1, 0, 0, 0],
     [0, Math.cos(theta), Math.sin(theta), 0],
@@ -126,7 +189,7 @@ function rotMatx(theta) {
   ]
 }
 
-function rotMatz(theta) {
+function matRotationz(theta) {
   return [
     [Math.cos(theta), Math.sin(theta), 0, 0],
     [-Math.sin(theta), Math.cos(theta), 0, 0],
@@ -135,7 +198,7 @@ function rotMatz(theta) {
   ]
 }
 
-function rotMaty(theta) {
+function matRotationy(theta) {
   return [
     [Math.cos(theta), 0, Math.sin(theta), 0],
     [0, 1, 0, 0],
@@ -144,32 +207,12 @@ function rotMaty(theta) {
   ]
 }
 
-// 3D function
-// 3D function
-// 3D function
+// copy function
+// copy function
+// copy function
 
-function 3D() {
-  worldMatrix = [
-    [1, 0, 0, 0],
-    [0, 1, 0, 0],
-    [0, 0, 1, 0],
-    [0, 0, 0, 0],
-  ]
-  up = [0, 1, 0]
-  target = [0, 0, 1]
-}
-
-// mainloop
-// mainloop
-// mainloop
-
-mainloop = () => {
-  windowInfo()
-  keyToMovement()
-  fillScreen("black")
-  3D()
-  shape("white", true, [mousex, mousey, 10 + mousex, 10 + mousey, 20 + mousex, mousey, 10 + mousex, mousey - 10])
-  request = requestAnimationFrame(mainloop)
+function copyArray(array) {
+  return JSON.parse(JSON.stringify(array))
 }
 
 // user functions
@@ -216,6 +259,8 @@ function keyToMovement() {
 function mouseMove(e) {
   mousex += e.movementX
   mousey -= e.movementY
+  xRotaion = mousey / 100
+  yRotaion = mousex / 100
 }
 
 function keyDown(e) {
