@@ -75,7 +75,7 @@ function ToDrawQueue(meshObject, rotationMatrix, translationVector) {
       currentTriangle[1][1] *= halfHeight
       currentTriangle[2][0] *= halfWidth
       currentTriangle[2][1] *= halfHeight
-      renderQueue.push([currentTriangle, color, currentTriangle[0][2] + currentTriangle[1][2] + currentTriangle[2][2]])
+      renderQueue.push([currentTriangle, color, currentTriangle[0][3] + currentTriangle[1][3] + currentTriangle[2][3]])
     }
   }
 }
@@ -90,7 +90,7 @@ function drawQueue() {
     currentTriangle = object[0]
     color = object[1]
     color = "#" + color + color + color
-    shape(color, false, [
+    shape(color, true, [
       -currentTriangle[0][0], currentTriangle[0][1],
       -currentTriangle[1][0], currentTriangle[1][1],
       -currentTriangle[2][0], currentTriangle[2][1]
@@ -103,15 +103,53 @@ function drawQueue() {
 // mainloop
 tick = 0
 mainloop = () => {
-  tick += 0.01
+  tick += 0.005
   windowInfo()
   keyToMovement()
   fillScreen("black")
   renderQueue = []
-  ToDrawQueue(0, matMatMul(matRotationy(tick + Math.PI / 2), matRotationx(tick + Math.PI / 4)), [10, -1, -20])
-  ToDrawQueue(0, matMatMul(matRotationy(tick - Math.PI / 2), matRotationx(tick - Math.PI / 4)), [-10, 1, -20])
+  ToDrawQueue(0, matMatMul(matRotationy(0 + Math.PI / 2), matRotationx(tick + Math.PI / 4)), [10, -1, -20])
+  ToDrawQueue(0, matMatMul(matRotationy(0 - Math.PI / 2), matRotationx(-tick - Math.PI / 4)), [-10, 1, -20])
+  renderQueue = mergeSort(renderQueue)
   drawQueue()
   request = requestAnimationFrame(mainloop)
+}
+
+// sort function
+// sort function
+// sort function
+
+function mergeSort(arr) {
+  let len = arr.length, middle, left, right
+  if (len < 2) {
+    return arr
+  }
+  middle = Math.floor(len / 2)
+  left = arr.slice(0, middle)
+  right = arr.slice(middle)
+  return merge(mergeSort(left), mergeSort(right))
+
+}
+
+function merge(left, right) {
+  let result = [], i = 0, j = 0
+  while (i < left.length && j < right.length) {
+    if (left[i][2] > right[j][2]) {
+      result.push(left[i++])
+    } else {
+      result.push(right[j++])
+    }
+  }
+  return result.concat(left.slice(i)).concat(right.slice(j))
+}
+
+function rotMatx(t) {
+  rotxMat = [
+    [1, 0, 0, 0],
+    [0, Math.cos(t), Math.sin(t), 0],
+    [0, -Math.sin(t), Math.cos(t), 0],
+    [0, 0, 0, 1]
+  ]
 }
 
 // operation functions
